@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GreenTable">
+<meta name="theme-color" content="#2d5a27">
+<title>GreenTable</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#2d5a27;--green-light:#c0e8b8;--green-mid:#7ab070;
+  --bg:#f5f5f0;--card:#ffffff;--border:#e0e0d8;
+  --text:#1a1a18;--muted:#787870;--star:#e8a020;--star-off:#d8d8d0;
+  --red:#c0392b;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.app{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.status{height:calc(var(--safe-top) + 44px);background:var(--green);display:flex;align-items:flex-end;padding:0 20px 10px;justify-content:space-between}
+.status span{color:var(--green-light);font-size:12px;font-weight:500}
+.screen{flex:1;overflow:hidden;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;display:none;padding-bottom:calc(var(--safe-bot) + 60px);-webkit-overflow-scrolling:touch}
+.view.active{display:block}
+.tabbar{height:calc(var(--safe-bot) + 60px);background:var(--card);border-top:.5px solid var(--border);display:flex;padding-bottom:var(--safe-bot)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--muted);font-size:10px;cursor:pointer;padding-top:8px}
+.tab.active{color:var(--green)}
+.tab-icon{font-size:22px;line-height:1}
+.hero{background:var(--green);padding:18px 16px 22px}
+.hero-title{font-size:22px;font-weight:600;color:#e8f5e4;margin-bottom:2px}
+.hero-sub{font-size:13px;color:#9fcf96;margin-bottom:14px}
+.search-box{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:10px 13px}
+.search-box input{flex:1;background:none;border:none;outline:none;color:white;font-size:14px;font-family:inherit}
+.search-box input::placeholder{color:rgba(255,255,255,.5)}
+.filter-row{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;background:var(--bg)}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer}
+.chip.on{background:var(--green);color:var(--green-light);border-color:var(--green)}
+.slabel{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:10px 14px 6px}
+.card{margin:0 14px 10px;background:var(--card);border-radius:14px;border:.5px solid var(--border);overflow:hidden;cursor:pointer}
+.card:active{opacity:.85}
+.card-img{width:100%;height:110px;background:#c8dfc4;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.card-img img{width:100%;height:110px;object-fit:cover}
+.card-emoji{font-size:38px}
+.card-type{position:absolute;top:7px;left:8px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;border:1px solid}
+.card-body{padding:10px 12px}
+.card-name{font-size:14px;font-weight:600;margin-bottom:4px}
+.card-meta{display:flex;justify-content:space-between;align-items:center}
+.card-loc{font-size:11px;color:var(--muted)}
+.stars-sm{display:flex;gap:1px}
+.star{font-size:13px;color:var(--star-off)}
+.star.on{color:var(--star)}
+.detail-hero{width:100%;height:180px;background:#c8dfc4;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.detail-hero img{width:100%;height:180px;object-fit:cover}
+.detail-emoji{font-size:54px}
+.detail-cam{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.45);border-radius:10px;padding:5px 10px;color:white;font-size:11px;cursor:pointer;border:none}
+.detail-back{position:absolute;top:10px;left:10px;width:32px;height:32px;background:rgba(0,0,0,.3);border-radius:50%;border:none;color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.detail-body{padding:16px}
+.detail-name{font-size:20px;font-weight:600;margin-bottom:8px}
+.detail-type{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;border:1px solid;margin-bottom:16px}
+.sec{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin:16px 0 8px}
+.stars-lg{display:flex;gap:5px;margin-bottom:4px}
+.star-lg{font-size:28px;cursor:pointer;color:var(--star-off)}
+.star-lg.on{color:var(--star)}
+.info-block{border:.5px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden}
+.info-row{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:.5px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-ico{font-size:16px;width:24px;text-align:center}
+.info-val{font-size:13px;color:var(--text)}
+.info-lbl{font-size:11px;color:var(--muted)}
+.info-call{margin-left:auto;color:var(--green);font-size:12px;text-decoration:none}
+.notes-ta{width:100%;border:.5px solid var(--border);border-radius:10px;padding:10px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);resize:none;height:80px;outline:none}
+.btn-main{width:100%;padding:14px;background:var(--green);color:var(--green-light);border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px}
+.btn-del{width:100%;padding:12px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;margin-top:12px}
+.form-wrap{padding:16px}
+.form-title{font-size:18px;font-weight:600;margin-bottom:2px}
+.form-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--card);color:var(--text);font-family:inherit;outline:none;-webkit-appearance:none}
+.field textarea{height:80px;resize:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photo-box{width:100%;height:90px;border:1.5px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;background:var(--card);overflow:hidden}
+.photo-box img{width:100%;height:90px;object-fit:cover}
+.photo-hint{font-size:12px;color:var(--muted)}
+.stars-form{display:flex;gap:6px;margin-top:4px}
+.star-f{font-size:30px;cursor:pointer;color:var(--star-off)}
+.star-f.on{color:var(--star)}
+.dest-hero{background:var(--green);padding:18px 16px 22px}
+.list-block{margin:0 14px;background:var(--card);border-radius:14px;border:.5px solid var(--border);overflow:hidden}
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:.5px solid var(--border);cursor:pointer}
+.list-row:last-child{border-bottom:none}
+.list-row:active{background:#f0f0ea}
+.list-name{font-size:14px}
+.badge{background:#eaf3de;border-radius:10px;padding:2px 10px}
+.badge span{font-size:12px;color:#3b6d11;font-weight:500}
+.dest-back{background:none;border:none;color:var(--green-light);font-size:20px;cursor:pointer;padding:0;margin-right:10px}
+.empty{text-align:center;color:var(--muted);padding:30px;font-size:14px;line-height:22px}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--green-light);padding:9px 18px;border-radius:20px;font-size:13px;display:none;z-index:999;white-space:nowrap;pointer-events:none}
+.storage-warn{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 12px;margin:10px 14px;font-size:12px;color:#856404;display:none}
+.t-veg{background:#eaf3de;color:#3b6d11;border-color:#c0dd97}
+.t-vegan{background:#e1f5ee;color:#0f6e56;border-color:#9fe1cb}
+.t-bio{background:#e6f1fb;color:#185fa5;border-color:#b5d4f4}
+.t-raw{background:#faeeda;color:#854f0b;border-color:#fac775}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="status">
+    <span id="st-time">9:41</span>
+    <span>GreenTable</span>
+  </div>
+  <div class="screen">
+    <div class="view active" id="v-home">
+      <div class="hero">
+        <div class="hero-title">🥗 GreenTable</div>
+        <div class="hero-sub">Restos bio & végé du monde entier</div>
+        <div class="search-box">
+          <span>🔍</span>
+          <input id="search-q" placeholder="Ville, pays, nom..." oninput="renderHome()">
+        </div>
+      </div>
+      <div class="filter-row" id="filter-row"></div>
+      <div class="storage-warn" id="storage-warn">⚠️ Espace de stockage limité — les photos volumineuses ont été réduites automatiquement.</div>
+      <div class="slabel" id="home-count"></div>
+      <div id="home-list"></div>
+      <div style="height:10px"></div>
+    </div>
+    <div class="view" id="v-detail">
+      <div class="detail-hero" id="d-hero"></div>
+      <div class="detail-body">
+        <div class="detail-name" id="d-name"></div>
+        <div class="detail-type" id="d-type"></div>
+        <div class="sec">Votre note</div>
+        <div class="stars-lg" id="d-stars"></div>
+        <div class="sec">Informations</div>
+        <div class="info-block" id="d-info"></div>
+        <div class="sec">Notes personnelles</div>
+        <textarea class="notes-ta" id="d-notes" placeholder="Vos impressions, plats préférés..."></textarea>
+        <button class="btn-main" onclick="saveNote()">Enregistrer la note</button>
+        <button class="btn-del" onclick="deleteResto()">Supprimer ce restaurant</button>
+      </div>
+    </div>
+    <div class="view" id="v-add">
+      <div class="form-wrap">
+        <div class="form-title">Ajouter un restaurant</div>
+        <div class="form-sub">Partagez une adresse bio ou végé</div>
+        <div class="field">
+          <label>Photo du lieu</label>
+          <div class="photo-box" id="add-photo-box" onclick="document.getElementById('add-photo-input').click()">
+            <span style="font-size:24px">📷</span>
+            <span class="photo-hint">Appuyer pour ajouter une photo</span>
+          </div>
+          <input type="file" id="add-photo-input" accept="image/*" style="display:none" onchange="addPhotoChange(this)">
+        </div>
+        <div class="field"><label>Nom du restaurant *</label><input type="text" id="a-name" placeholder="Ex: Le Jardin Vert"></div>
+        <div class="row2">
+          <div class="field"><label>Pays *</label>
+            <select id="a-country">
+              <option value="">— Pays</option>
+              <option>Belgique</option><option>France</option><option>Suisse</option>
+              <option>Espagne</option><option>Italie</option><option>Allemagne</option>
+              <option>Portugal</option><option>Pays-Bas</option><option>Royaume-Uni</option><option>Autre</option>
+            </select>
+          </div>
+          <div class="field"><label>Ville *</label><input type="text" id="a-city" placeholder="Ex: Bruxelles"></div>
+        </div>
+        <div class="field"><label>Adresse complète</label><input type="text" id="a-address" placeholder="Rue, numéro, code postal"></div>
+        <div class="field"><label>Téléphone</label><input type="tel" id="a-phone" placeholder="+32 2 123 45 67"></div>
+        <div class="field"><label>Type</label>
+          <select id="a-type">
+            <option value="">— Sélectionner</option>
+            <option>Végétarien</option><option>Vegan</option><option>Bio certifié</option>
+            <option>Végétarien & Bio</option><option>Vegan & Bio</option><option>Cru / Raw</option>
+          </select>
+        </div>
+        <div class="field"><label>Votre note</label><div class="stars-form" id="add-stars"></div></div>
+        <div class="field"><label>Description / commentaire</label><textarea id="a-desc" placeholder="Ambiance, spécialités, bon plan..."></textarea></div>
+        <button class="btn-main" onclick="submitAdd()">Enregistrer le restaurant</button>
+        <div style="height:20px"></div>
+      </div>
+    </div>
+    <div class="view" id="v-dest">
+      <div class="dest-hero">
+        <div style="display:flex;align-items:center;margin-bottom:4px">
+          <button class="dest-back" id="dest-back-btn" style="display:none" onclick="destBack()">←</button>
+          <div class="hero-title" id="dest-title">🌍 Destinations</div>
+        </div>
+        <div class="hero-sub" id="dest-sub">Parcourir par pays et par ville</div>
+      </div>
+      <div id="dest-content"></div>
+    </div>
+    <div class="view" id="v-favs">
+      <div class="hero">
+        <div class="hero-title">⭐ Favoris</div>
+        <div class="hero-sub">Restaurants notés 4 étoiles et plus</div>
+      </div>
+      <div class="slabel" id="favs-count"></div>
+      <div id="favs-list"></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <button class="tab active" id="tab-home" onclick="goTab('home')"><span class="tab-icon">🏠</span>Accueil</button>
+    <button class="tab" id="tab-dest" onclick="goTab('dest')"><span class="tab-icon">🌍</span>Destination</button>
+    <button class="tab" id="tab-add" onclick="goTab('add')"><span class="tab-icon">➕</span>Ajouter</button>
+    <button class="tab" id="tab-favs" onclick="goTab('favs')"><span class="tab-icon">⭐</span>Favoris</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STORAGE ROBUSTE ───────────────────────────────────
+const STORAGE_KEY = 'greentable_v2';
+const PHOTOS_KEY  = 'greentable_photos_v2';
+
+// Sauvegarde séparée : données texte d'un côté, photos de l'autre
+// Cela évite de dépasser la limite de 5MB de localStorage d'un seul coup
+
+function saveData(restos) {
+  // On sauvegarde sans les photos dans l'objet principal
+  const withoutPhotos = restos.map(r => ({...r, photo: r.photo ? '__has_photo__' : null}));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(withoutPhotos));
+  } catch(e) {
+    console.warn('Erreur sauvegarde données', e);
+  }
+  // Photos séparément, une par une
+  const photosMap = {};
+  restos.forEach(r => { if(r.photo && r.photo !== '__has_photo__') photosMap[r.id] = r.photo; });
+  try {
+    localStorage.setItem(PHOTOS_KEY, JSON.stringify(photosMap));
+  } catch(e) {
+    // Si trop lourd, on sauvegarde photo par photo et on abandonne celles qui ne passent pas
+    console.warn('Photos trop lourdes, sauvegarde individuelle');
+    const existing = loadPhotos();
+    Object.entries(photosMap).forEach(([id, photo]) => {
+      try {
+        existing[id] = photo;
+        localStorage.setItem(PHOTOS_KEY, JSON.stringify(existing));
+      } catch(e2) {
+        delete existing[id];
+        console.warn('Photo ignorée car trop lourde:', id);
+        document.getElementById('storage-warn').style.display = 'block';
+      }
+    });
+  }
+}
+
+function loadPhotos() {
+  try {
+    const raw = localStorage.getItem(PHOTOS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [...DEFAULT];
+    const restos = JSON.parse(raw);
+    const photos = loadPhotos();
+    // Réinjecter les photos
+    return restos.map(r => ({
+      ...r,
+      photo: r.photo === '__has_photo__' ? (photos[r.id] || null) : null
+    }));
+  } catch { return [...DEFAULT]; }
+}
+
+// Compresser une image avant stockage (max 800px, qualité 0.6)
+function compressImage(dataUrl, callback) {
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    const MAX = 800;
+    let w = img.width, h = img.height;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.6));
+  };
+  img.src = dataUrl;
+}
+
+// ── DONNÉES PAR DÉFAUT ────────────────────────────────
+const DEFAULT = [
+  {id:'1',name:'Le Potager du Marais',city:'Paris',country:'France',address:'22 rue Rambuteau, 75003 Paris',phone:'+33 1 42 74 24 66',type:'Végétarien',rating:4,notes:'Cuisine créative, superbe brunch du dimanche',photo:null,icon:'🥗'},
+  {id:'2',name:'Graanmarkt 13',city:'Bruxelles',country:'Belgique',address:'Graanmarkt 13, 1000 Bruxelles',phone:'+32 3 337 79 91',type:'Bio certifié',rating:5,notes:'',photo:null,icon:'🌿'},
+  {id:'3',name:'La Granja',city:'Barcelone',country:'Espagne',address:'Carrer dels Tallers 9, 08001 Barcelona',phone:'+34 932 01 77 14',type:'Vegan',rating:4,notes:'Salle calme, desserts incroyables',photo:null,icon:'🥦'},
+  {id:'4',name:'Chambre séparée',city:'Gand',country:'Belgique',address:'Gewad 4, 9000 Gent',phone:'+32 9 266 09 97',type:'Bio certifié',rating:5,notes:'',photo:null,icon:'🌱'},
+  {id:'5',name:'Tibits',city:'Zurich',country:'Suisse',address:'Seefeldstrasse 2, 8008 Zürich',phone:'+41 44 260 32 22',type:'Végétarien & Bio',rating:4,notes:'Super buffet à volonté',photo:null,icon:'🍃'},
+];
+const ICONS = ['🥗','🌿','🥦','🌱','🍃','🫐','🥕','🫛','🍀','🌾'];
+const TYPE_CLS = {'Végétarien':'t-veg','Vegan':'t-vegan','Bio certifié':'t-bio','Végétarien & Bio':'t-bio','Vegan & Bio':'t-vegan','Cru / Raw':'t-raw'};
+const FILTERS = ['Tous','Végétarien','Vegan','Bio certifié','Cru / Raw'];
+
+let restos = loadData();
+let currentId = null;
+let addRating = 3;
+let addPhotoData = null;
+let activeFilter = 'Tous';
+let destLevel = 'countries';
+let destCountry = null;
+let destCity = null;
+let prevTab = 'home';
+
+function setTime(){const n=new Date();document.getElementById('st-time').textContent=n.getHours()+':'+(n.getMinutes()<10?'0':'')+n.getMinutes();}
+setTime();setInterval(setTime,10000);
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+function starsHTML(n){return[1,2,3,4,5].map(i=>`<span class="star ${i<=n?'on':''}">${i<=n?'★':'☆'}</span>`).join('');}
+function typeClass(t){return TYPE_CLS[t]||'t-veg';}
+
+// ── NAVIGATION ────────────────────────────────────────
+function goTab(tab){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('v-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='home') renderHome();
+  if(tab==='dest'){destLevel='countries';destCountry=null;destCity=null;renderDest();}
+  if(tab==='favs') renderFavs();
+  if(tab==='add') resetAddForm();
+  prevTab=tab;
+}
+
+function showDetail(id, from){
+  if(from) prevTab=from;
+  currentId=id;
+  const r=restos.find(x=>x.id===id);if(!r)return;
+  const dh=document.getElementById('d-hero');
+  dh.innerHTML='';
+  if(r.photo){const img=document.createElement('img');img.src=r.photo;dh.appendChild(img);}
+  else{const em=document.createElement('div');em.className='detail-emoji';em.textContent=r.icon||'🥗';dh.appendChild(em);}
+  const back=document.createElement('button');back.className='detail-back';back.textContent='←';back.onclick=()=>goTab(prevTab);dh.appendChild(back);
+  const cam=document.createElement('button');cam.className='detail-cam';cam.textContent='📷 Photo';cam.onclick=changePhoto;dh.appendChild(cam);
+  document.getElementById('d-name').textContent=r.name;
+  const dt=document.getElementById('d-type');dt.textContent=r.type;dt.className='detail-type '+typeClass(r.type);
+  const ds=document.getElementById('d-stars');ds.innerHTML='';
+  for(let i=1;i<=5;i++){const s=document.createElement('span');s.className='star-lg'+(i<=r.rating?' on':'');s.textContent=i<=r.rating?'★':'☆';s.onclick=(v=>()=>setDetailRating(v))(i);ds.appendChild(s);}
+  document.getElementById('d-info').innerHTML=`
+    <div class="info-row"><span class="info-ico">📍</span><div><div class="info-val">${r.address||'Non renseignée'}</div><div class="info-lbl">Adresse</div></div></div>
+    <div class="info-row"><span class="info-ico">📞</span><div><div class="info-val">${r.phone||'Non renseigné'}</div><div class="info-lbl">Téléphone</div></div>${r.phone?`<a class="info-call" href="tel:${r.phone}">Appeler →</a>`:''}</div>
+    <div class="info-row"><span class="info-ico">🌍</span><div><div class="info-val">${r.city}, ${r.country}</div><div class="info-lbl">Localisation</div></div></div>`;
+  document.getElementById('d-notes').value=r.notes||'';
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('v-detail').classList.add('active');
+}
+
+function setDetailRating(v){
+  const r=restos.find(x=>x.id===currentId);if(!r)return;
+  r.rating=v;saveData(restos);
+  const ds=document.getElementById('d-stars');
+  [...ds.children].forEach((s,i)=>{s.className='star-lg'+(i<v?' on':'');s.textContent=i<v?'★':'☆';});
+  toast('Note mise à jour ✓');
+}
+
+function saveNote(){
+  const r=restos.find(x=>x.id===currentId);if(!r)return;
+  r.notes=document.getElementById('d-notes').value;
+  saveData(restos);toast('Note enregistrée ✓');
+}
+
+function deleteResto(){
+  if(!confirm('Supprimer ce restaurant ?'))return;
+  // Supprimer aussi la photo
+  try{const p=loadPhotos();delete p[currentId];localStorage.setItem(PHOTOS_KEY,JSON.stringify(p));}catch(e){}
+  restos=restos.filter(x=>x.id!==currentId);
+  saveData(restos);goTab(prevTab);toast('Restaurant supprimé');
+}
+
+function changePhoto(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const fr=new FileReader();
+    fr.onload=ev=>{
+      compressImage(ev.target.result, compressed=>{
+        const r=restos.find(x=>x.id===currentId);if(!r)return;
+        r.photo=compressed;saveData(restos);
+        showDetail(currentId);toast('Photo mise à jour ✓');
+      });
+    };fr.readAsDataURL(f);
+  };inp.click();
+}
+
+// ── HOME ──────────────────────────────────────────────
+function renderFilters(){
+  document.getElementById('filter-row').innerHTML=FILTERS.map(f=>
+    `<div class="chip${f===activeFilter?' on':''}" onclick="setFilter('${f}')">${f}</div>`
+  ).join('');
+}
+function setFilter(f){activeFilter=f;renderFilters();renderHome();}
+
+function cardHTML(r, fromTab){
+  return`<div class="card" onclick="showDetail('${r.id}','${fromTab||prevTab}')">
+    <div class="card-img">
+      ${r.photo?`<img src="${r.photo}" alt="">`:`<span class="card-emoji">${r.icon||'🥗'}</span>`}
+      <span class="card-type ${typeClass(r.type)}">${r.type}</span>
+    </div>
+    <div class="card-body">
+      <div class="card-name">${r.name}</div>
+      <div class="card-meta">
+        <span class="card-loc">📍 ${r.city}, ${r.country}</span>
+        <div class="stars-sm">${starsHTML(r.rating)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderHome(){
+  renderFilters();
+  const q=document.getElementById('search-q').value.toLowerCase();
+  const list=restos.filter(r=>{
+    const mq=!q||r.name.toLowerCase().includes(q)||r.city.toLowerCase().includes(q)||r.country.toLowerCase().includes(q);
+    const mf=activeFilter==='Tous'||r.type.includes(activeFilter);
+    return mq&&mf;
+  });
+  document.getElementById('home-count').textContent=`${list.length} restaurant${list.length!==1?'s':''}`;
+  document.getElementById('home-list').innerHTML=list.length===0
+    ?`<p class="empty">Aucun résultat</p>`
+    :list.map(r=>cardHTML(r,'home')).join('');
+}
+
+// ── ADD ───────────────────────────────────────────────
+function resetAddForm(){
+  addRating=3;addPhotoData=null;
+  ['a-name','a-city','a-address','a-phone','a-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('a-country').value='';
+  document.getElementById('a-type').value='';
+  document.getElementById('add-photo-box').innerHTML='<span style="font-size:24px">📷</span><span class="photo-hint">Appuyer pour ajouter une photo</span>';
+  buildAddStars();
+}
+function buildAddStars(){
+  const sf=document.getElementById('add-stars');sf.innerHTML='';
+  for(let i=1;i<=5;i++){
+    const s=document.createElement('span');
+    s.className='star-f'+(i<=addRating?' on':'');
+    s.textContent=i<=addRating?'★':'☆';
+    s.onclick=(v=>()=>{addRating=v;buildAddStars();})(i);
+    sf.appendChild(s);
+  }
+}
+function addPhotoChange(inp){
+  const f=inp.files[0];if(!f)return;
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    compressImage(ev.target.result, compressed=>{
+      addPhotoData=compressed;
+      const box=document.getElementById('add-photo-box');
+      box.innerHTML=`<img src="${compressed}">`;
+    });
+  };fr.readAsDataURL(f);
+}
+function submitAdd(){
+  const name=document.getElementById('a-name').value.trim();
+  const city=document.getElementById('a-city').value.trim();
+  const country=document.getElementById('a-country').value;
+  if(!name||!city||!country){toast('Remplissez les champs obligatoires (*)');return;}
+  const novo={
+    id:Date.now().toString(),name,city,country,
+    address:document.getElementById('a-address').value,
+    phone:document.getElementById('a-phone').value,
+    type:document.getElementById('a-type').value||'Végétarien',
+    rating:addRating,
+    notes:document.getElementById('a-desc').value,
+    photo:addPhotoData,
+    icon:ICONS[Math.floor(Math.random()*ICONS.length)]
+  };
+  restos.unshift(novo);
+  saveData(restos);
+  toast('Restaurant ajouté et sauvegardé ✓');
+  goTab('home');
+}
+
+// ── DESTINATION ───────────────────────────────────────
+function renderDest(){
+  document.getElementById('dest-back-btn').style.display=destLevel==='countries'?'none':'inline';
+  if(destLevel==='countries'){
+    document.getElementById('dest-title').textContent='🌍 Destinations';
+    document.getElementById('dest-sub').textContent='Parcourir par pays et par ville';
+    const map={};restos.forEach(r=>{map[r.country]=(map[r.country]||0)+1;});
+    const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
+      `<div class="list-row" onclick="destSelectCountry('${c}')">
+        <span class="list-name">🌿 ${c}</span>
+        <div class="badge"><span>${n} resto${n>1?'s':''}</span></div>
+      </div>`).join('');
+    document.getElementById('dest-content').innerHTML=`<div style="height:10px"></div><div class="list-block">${rows}</div>`;
+  } else if(destLevel==='cities'){
+    document.getElementById('dest-title').textContent=destCountry;
+    document.getElementById('dest-sub').textContent='Choisir une ville';
+    const map={};restos.filter(r=>r.country===destCountry).forEach(r=>{map[r.city]=(map[r.city]||0)+1;});
+    const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
+      `<div class="list-row" onclick="destSelectCity('${c}')">
+        <span class="list-name">📍 ${c}</span>
+        <div class="badge"><span>${n} resto${n>1?'s':''}</span></div>
+      </div>`).join('');
+    document.getElementById('dest-content').innerHTML=`<div style="height:10px"></div><div class="list-block">${rows}</div>`;
+  } else {
+    document.getElementById('dest-title').textContent=destCity;
+    const list=restos.filter(r=>r.country===destCountry&&r.city===destCity);
+    document.getElementById('dest-sub').textContent=`${list.length} restaurant${list.length!==1?'s':''}`;
+    document.getElementById('dest-content').innerHTML=`<div style="height:10px"></div>`+list.map(r=>cardHTML(r,'dest')).join('');
+  }
+}
+function destSelectCountry(c){destCountry=c;destLevel='cities';renderDest();}
+function destSelectCity(c){destCity=c;destLevel='restos';renderDest();}
+function destBack(){
+  if(destLevel==='restos'){destLevel='cities';}
+  else if(destLevel==='cities'){destLevel='countries';destCountry=null;}
+  renderDest();
+}
+
+// ── FAVS ──────────────────────────────────────────────
+function renderFavs(){
+  const favs=restos.filter(r=>r.rating>=4);
+  document.getElementById('favs-count').textContent=`${favs.length} restaurant${favs.length!==1?'s':''}`;
+  document.getElementById('favs-list').innerHTML=favs.length===0
+    ?`<p class="empty">Aucun favori pour l'instant.<br>Notez un restaurant 4 étoiles ou plus.</p>`
+    :favs.map(r=>cardHTML(r,'favs')).join('');
+}
+
+// ── INIT ──────────────────────────────────────────────
+buildAddStars();
+renderHome();
+</script>
+</body>
+</html>
