@@ -103,6 +103,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;backg
 .t-vegan{background:#e1f5ee;color:#0f6e56;border-color:#9fe1cb}
 .t-bio{background:#e6f1fb;color:#185fa5;border-color:#b5d4f4}
 .t-raw{background:#faeeda;color:#854f0b;border-color:#fac775}
+.exp-section{margin:14px;background:var(--card);border-radius:14px;border:.5px solid var(--border);overflow:hidden}
+.exp-section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:12px 14px 8px;border-bottom:.5px solid var(--border)}
+.exp-btn-wrap{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.exp-note{font-size:12px;color:var(--muted);padding:0 14px 12px;line-height:1.5}
+.exp-summary{font-size:12px;color:var(--green);padding:0 14px 12px;font-weight:500;display:none}
+.backup-banner{margin:14px;background:rgba(232,160,32,0.12);border:1px solid rgba(232,160,32,0.3);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px}
+.backup-banner-text{flex:1;font-size:13px;color:var(--text);line-height:1.4}
+.backup-banner-text strong{display:block;margin-bottom:2px}
+.backup-banner-btn{background:#e8a020;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
 </style>
 </head>
 <body>
@@ -199,12 +208,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;backg
       <div class="slabel" id="favs-count"></div>
       <div id="favs-list"></div>
     </div>
+
+    <div class="view" id="v-export">
+      <div class="hero">
+        <div class="hero-title">💾 Données</div>
+        <div class="hero-sub">Sauvegardez et exportez vos restaurants</div>
+      </div>
+      <div class="backup-banner">
+        <span style="font-size:24px">🛡️</span>
+        <div class="backup-banner-text">
+          <strong>Sauvegarde recommandée</strong>
+          Safari peut effacer le stockage local. Téléchargez une copie JSON pour ne jamais perdre vos données.
+        </div>
+        <button class="backup-banner-btn" onclick="backupJSON()">Sauvegarder</button>
+      </div>
+      <div class="exp-section">
+        <div class="exp-section-title">Restaurer une sauvegarde</div>
+        <div class="exp-btn-wrap">
+          <button class="btn-main" onclick="document.getElementById('json-input').click()">📂 Restaurer depuis JSON</button>
+          <input type="file" id="json-input" accept=".json" style="display:none" onchange="restoreJSON(this)">
+        </div>
+        <div class="exp-note">Restaure une sauvegarde JSON précédemment téléchargée. ⚠️ Remplace toutes les données actuelles.</div>
+      </div>
+      <div class="exp-section">
+        <div class="exp-section-title">Exporter en CSV</div>
+        <div class="exp-btn-wrap">
+          <button class="btn-main" id="csv-export-btn" onclick="exportCSV()">⬆ Télécharger CSV</button>
+        </div>
+        <div class="exp-note">Exporte tous vos restaurants dans un fichier CSV ouvrable dans Excel ou Google Sheets. Colonnes : nom, ville, pays, adresse, téléphone, type, note, commentaire, date.</div>
+        <div class="exp-summary" id="csv-summary"></div>
+      </div>
+      <div class="exp-section">
+        <div class="exp-section-title">Importer un CSV</div>
+        <div class="exp-btn-wrap">
+          <button class="btn-main" onclick="document.getElementById('csv-input').click()">⬇ Importer CSV</button>
+          <input type="file" id="csv-input" accept=".csv,.txt" style="display:none" onchange="importCSV(this)">
+        </div>
+        <div class="exp-note">Importe des restaurants depuis un fichier CSV. ⚠️ Remplace tous les restaurants actuels. Colonnes attendues : nom, ville, pays, adresse, telephone, type, note, commentaire, date.</div>
+        <div class="exp-summary" id="import-summary"></div>
+      </div>
+      <div style="height:10px"></div>
+    </div>
   </div>
   <div class="tabbar">
     <button class="tab active" id="tab-home" onclick="goTab('home')"><span class="tab-icon">🏠</span>Accueil</button>
     <button class="tab" id="tab-dest" onclick="goTab('dest')"><span class="tab-icon">🌍</span>Destination</button>
     <button class="tab" id="tab-add" onclick="goTab('add')"><span class="tab-icon">➕</span>Ajouter</button>
     <button class="tab" id="tab-favs" onclick="goTab('favs')"><span class="tab-icon">⭐</span>Favoris</button>
+    <button class="tab" id="tab-export" onclick="goTab('export')"><span class="tab-icon">💾</span>Données</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -323,6 +374,7 @@ function goTab(tab){
   if(tab==='dest'){destLevel='countries';destCountry=null;destCity=null;renderDest();}
   if(tab==='favs') renderFavs();
   if(tab==='add') resetAddForm();
+  if(tab==='export') renderExport();
   prevTab=tab;
 }
 
@@ -520,6 +572,122 @@ function renderFavs(){
   document.getElementById('favs-list').innerHTML=favs.length===0
     ?`<p class="empty">Aucun favori pour l'instant.<br>Notez un restaurant 4 étoiles ou plus.</p>`
     :favs.map(r=>cardHTML(r,'favs')).join('');
+}
+
+// ── EXPORT / BACKUP ───────────────────────────────────
+function renderExport(){
+  document.getElementById('csv-export-btn').disabled=restos.length===0;
+}
+
+function backupJSON(){
+  const data=JSON.stringify({version:2,date:new Date().toISOString().split('T')[0],restos:restos.map(r=>({...r,photo:r.photo?'[photo]':null}))},null,2);
+  // Note: on exclut les photos du JSON car elles sont trop volumineuses (base64)
+  // Les photos restent dans le localStorage
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`greentable-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();URL.revokeObjectURL(url);
+  toast('✓ Sauvegarde JSON téléchargée (sans photos)');
+}
+
+function restoreJSON(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      const restored=data.restos||data;
+      if(!Array.isArray(restored))throw new Error('Format invalide');
+      if(!confirm(`Restaurer ${restored.length} restaurants ? Toutes les données actuelles seront remplacées.`))return;
+      // Réinjecter les photos depuis le localStorage actuel si possible
+      const photosMap={};
+      restos.forEach(r=>{if(r.photo)photosMap[r.id]=r.photo;});
+      restos=restored.map(r=>({...r,photo:r.photo==='[photo]'?(photosMap[r.id]||null):r.photo}));
+      saveData(restos);
+      renderHome();renderExport();
+      toast(`✓ ${restos.length} restaurants restaurés`);
+    }catch(err){toast('⚠️ Fichier JSON invalide ou corrompu');}
+    inp.value='';
+  };
+  reader.readAsText(file);
+}
+
+function exportCSV(){
+  if(restos.length===0){toast('Aucun restaurant à exporter');return;}
+  const headers=['nom','ville','pays','adresse','telephone','type','note_etoiles','commentaire','date_ajout'];
+  const rows=restos.map(r=>[
+    r.name||'',r.city||'',r.country||'',r.address||'',
+    r.phone||'',r.type||'',r.rating||0,
+    (r.notes||'').replace(/\n/g,' '),
+    r.id?new Date(parseInt(r.id)).toISOString().split('T')[0]:''
+  ].map(csvEsc).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  // \uFEFF = BOM UTF-8 pour que Excel l'ouvre correctement
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`greentable-restos-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();URL.revokeObjectURL(url);
+  const s=document.getElementById('csv-summary');
+  s.textContent=`✓ ${restos.length} restaurants exportés`;s.style.display='block';
+  toast(`✓ CSV exporté — ${restos.length} restaurants`);
+}
+
+function csvEsc(v){
+  const s=String(v);
+  if(s.includes(',')||s.includes('"')||s.includes('\n'))return`"${s.replace(/"/g,'""')}"`;
+  return s;
+}
+
+function importCSV(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const text=e.target.result.replace(/^\uFEFF/,''); // supprimer BOM si présent
+    const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){toast('⚠️ Fichier CSV vide ou invalide');return;}
+    const delim=lines[0].includes(';')?';':',';
+    const header=parseCSVRow(lines[0],delim).map(h=>h.trim().toLowerCase());
+    const get=(cols,k)=>{const i=header.indexOf(k);return i>=0?(cols[i]||'').trim():''};
+    const imported=lines.slice(1).map(line=>{
+      const cols=parseCSVRow(line,delim);
+      const name=get(cols,'nom');
+      const city=get(cols,'ville');
+      const country=get(cols,'pays');
+      if(!name||!city)return null;
+      return{
+        id:Date.now().toString()+Math.random(),
+        name,city,country,
+        address:get(cols,'adresse'),
+        phone:get(cols,'telephone'),
+        type:get(cols,'type')||'Végétarien',
+        rating:parseInt(get(cols,'note_etoiles'))||3,
+        notes:get(cols,'commentaire'),
+        photo:null,
+        icon:ICONS[Math.floor(Math.random()*ICONS.length)]
+      };
+    }).filter(Boolean);
+    if(imported.length===0){toast('⚠️ Aucun restaurant valide trouvé dans le CSV');return;}
+    if(!confirm(`Importer ${imported.length} restaurants ? Les données actuelles seront remplacées.`))return;
+    restos=imported;saveData(restos);renderHome();
+    const s=document.getElementById('import-summary');
+    s.textContent=`✓ ${imported.length} restaurants importés`;s.style.display='block';
+    toast(`✓ ${imported.length} restaurants importés`);
+    inp.value='';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function parseCSVRow(line,delim){
+  const values=[];let val='';let quoted=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){if(quoted&&line[i+1]==='"'){val+='"';i++;}else quoted=!quoted;}
+    else if(c===delim&&!quoted){values.push(val);val='';}
+    else val+=c;
+  }
+  values.push(val);return values;
 }
 
 // ── INIT ──────────────────────────────────────────────
