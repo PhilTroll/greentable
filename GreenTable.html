@@ -99,6 +99,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;backg
 .empty{text-align:center;color:var(--muted);padding:30px;font-size:14px;line-height:22px}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--green-light);padding:9px 18px;border-radius:20px;font-size:13px;display:none;z-index:999;white-space:nowrap;pointer-events:none}
 .storage-warn{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 12px;margin:10px 14px;font-size:12px;color:#856404;display:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:430px;margin:0 auto;max-height:92dvh;overflow-y:auto;padding-bottom:calc(var(--safe-bot) + 12px)}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 14px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:0 16px 12px;border-bottom:.5px solid var(--border)}
+.modal-title{font-size:17px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1}
+.modal-save{background:var(--green);color:var(--green-light);border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.modal-body{padding:14px 16px}
+.edit-photo-box{width:100%;height:100px;border:1.5px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;background:#f0f5ee;overflow:hidden;margin-bottom:14px}
+.edit-photo-box img{width:100%;height:100px;object-fit:cover;border-radius:10px}
+.edit-photo-hint{font-size:12px;color:var(--muted)}
+.btn-modifier{width:100%;padding:12px;background:rgba(45,90,39,0.08);color:var(--green);border:1px solid rgba(45,90,39,0.2);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px}
 .t-veg{background:#eaf3de;color:#3b6d11;border-color:#c0dd97}
 .t-vegan{background:#e1f5ee;color:#0f6e56;border-color:#9fe1cb}
 .t-bio{background:#e6f1fb;color:#185fa5;border-color:#b5d4f4}
@@ -148,6 +161,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;backg
         <div class="sec">Notes personnelles</div>
         <textarea class="notes-ta" id="d-notes" placeholder="Vos impressions, plats préférés..."></textarea>
         <button class="btn-main" onclick="saveNote()">Enregistrer la note</button>
+        <button class="btn-modifier" onclick="openEditModal()">✏️ Modifier les informations</button>
         <button class="btn-del" onclick="deleteResto()">Supprimer ce restaurant</button>
       </div>
     </div>
@@ -250,6 +264,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;backg
       <div style="height:10px"></div>
     </div>
   </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">Modifier le restaurant</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="modal-save" onclick="saveEditModal()">Enregistrer</button>
+          <button class="modal-close" onclick="closeEditModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="field"><label>Photo</label>
+          <div class="edit-photo-box" id="edit-photo-box" onclick="document.getElementById('edit-photo-input').click()">
+            <span style="font-size:24px">📷</span>
+            <span class="edit-photo-hint">Appuyer pour changer la photo</span>
+          </div>
+          <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="editPhotoChange(this)">
+        </div>
+        <div class="field"><label>Nom du restaurant *</label><input type="text" id="e-name" placeholder="Ex: Le Jardin Vert"></div>
+        <div class="row2">
+          <div class="field"><label>Pays *</label>
+            <select id="e-country">
+              <option value="">— Pays</option>
+              <option>Belgique</option><option>France</option><option>Suisse</option>
+              <option>Espagne</option><option>Italie</option><option>Allemagne</option>
+              <option>Portugal</option><option>Pays-Bas</option><option>Royaume-Uni</option><option>Autre</option>
+            </select>
+          </div>
+          <div class="field"><label>Ville *</label><input type="text" id="e-city" placeholder="Ex: Bruxelles"></div>
+        </div>
+        <div class="field"><label>Adresse</label><input type="text" id="e-address" placeholder="Rue, numéro, code postal"></div>
+        <div class="field"><label>Téléphone</label><input type="tel" id="e-phone" placeholder="+32 2 123 45 67"></div>
+        <div class="field"><label>Type</label>
+          <select id="e-type">
+            <option value="">— Sélectionner</option>
+            <option>Végétarien</option><option>Vegan</option><option>Bio certifié</option>
+            <option>Végétarien &amp; Bio</option><option>Vegan &amp; Bio</option><option>Cru / Raw</option>
+          </select>
+        </div>
+        <div style="height:8px"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="tabbar">
     <button class="tab active" id="tab-home" onclick="goTab('home')"><span class="tab-icon">🏠</span>Accueil</button>
     <button class="tab" id="tab-dest" onclick="goTab('dest')"><span class="tab-icon">🌍</span>Destination</button>
@@ -436,6 +496,67 @@ function changePhoto(){
       });
     };fr.readAsDataURL(f);
   };inp.click();
+}
+
+// ── EDIT MODAL ────────────────────────────────────────
+let editPhotoNew = null;
+
+function openEditModal(){
+  const r=restos.find(x=>x.id===currentId);if(!r)return;
+  editPhotoNew=null;
+  document.getElementById('e-name').value=r.name||'';
+  document.getElementById('e-country').value=r.country||'';
+  document.getElementById('e-city').value=r.city||'';
+  document.getElementById('e-address').value=r.address||'';
+  document.getElementById('e-phone').value=r.phone||'';
+  document.getElementById('e-type').value=r.type||'';
+  const box=document.getElementById('edit-photo-box');
+  box.style.position='relative';
+  if(r.photo){
+    box.innerHTML=`<img src="${r.photo}" alt=""><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.45);border-radius:8px;padding:3px 8px;color:white;font-size:11px">Changer</div>`;
+  } else {
+    box.innerHTML=`<span style="font-size:24px">📷</span><span class="edit-photo-hint">Appuyer pour ajouter une photo</span>`;
+  }
+  document.getElementById('edit-photo-input').value='';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal(){
+  document.getElementById('edit-modal').classList.remove('open');
+  editPhotoNew=null;
+}
+
+function editPhotoChange(inp){
+  const f=inp.files[0];if(!f)return;
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    compressImage(ev.target.result, compressed=>{
+      editPhotoNew=compressed;
+      const box=document.getElementById('edit-photo-box');
+      box.style.position='relative';
+      box.innerHTML=`<img src="${compressed}" alt=""><div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.45);border-radius:8px;padding:3px 8px;color:white;font-size:11px">Changer</div>`;
+    });
+  };fr.readAsDataURL(f);
+}
+
+function saveEditModal(){
+  const r=restos.find(x=>x.id===currentId);if(!r)return;
+  const name=document.getElementById('e-name').value.trim();
+  const country=document.getElementById('e-country').value;
+  const city=document.getElementById('e-city').value.trim();
+  if(!name||!country||!city){toast('Nom, pays et ville sont obligatoires');return;}
+  r.name=name;
+  r.country=country;
+  r.city=city;
+  r.address=document.getElementById('e-address').value.trim();
+  r.phone=document.getElementById('e-phone').value.trim();
+  r.type=document.getElementById('e-type').value||r.type;
+  if(editPhotoNew!==null) r.photo=editPhotoNew;
+  saveData(restos);
+  closeEditModal();
+  showDetail(currentId);
+  renderHome();
+  toast('Restaurant mis à jour ✓');
 }
 
 // ── HOME ──────────────────────────────────────────────
