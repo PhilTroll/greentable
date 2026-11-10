@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GreenTable">
+<meta name="theme-color" content="#2d5a27">
+<title>GreenTable</title>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#2d5a27;--green-light:#c0e8b8;--green-mid:#7ab070;
+  --bg:#f5f5f0;--card:#ffffff;--border:#e0e0d8;
+  --text:#1a1a18;--muted:#787870;--star:#e8a020;--star-off:#d8d8d0;
+  --red:#c0392b;--medal-bg:#dcebd8;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.app{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:var(--safe-top);background:var(--green);flex-shrink:0}
+.screen{flex:1;overflow:hidden;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;display:none;padding-bottom:20px;-webkit-overflow-scrolling:touch}
+.view.active{display:block}
+.tabbar{height:calc(var(--safe-bot) + 60px);background:var(--card);border-top:.5px solid var(--border);display:flex;padding-bottom:var(--safe-bot);flex-shrink:0}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--muted);font-size:10px;cursor:pointer;padding-top:8px;font-family:inherit}
+.tab.active{color:var(--green)}
+.tab-icon{width:24px;height:24px;display:block}
+.tab.active .tab-icon{stroke-width:2.2}
+.hero{background:var(--green);padding:18px 16px 22px}
+.hero-title{font-size:22px;font-weight:600;color:#e8f5e4;margin-bottom:2px}
+.hero-sub{font-size:13px;color:#9fcf96;margin-bottom:14px}
+.hero-sub.last{margin-bottom:0}
+.search-box{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:10px 13px;color:rgba(255,255,255,.7)}
+.search-box input{flex:1;background:none;border:none;outline:none;color:white;font-size:16px;font-family:inherit}
+.search-box input::placeholder{color:rgba(255,255,255,.5)}
+.filter-row{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;background:var(--bg)}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer}
+.chip.on{background:var(--green);color:var(--green-light);border-color:var(--green)}
+.slabel{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:10px 14px 6px}
+
+/* Liste en médaillons */
+.rows{margin:0 14px 10px;background:var(--card);border-radius:14px;border:.5px solid var(--border);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:.5px solid var(--border);cursor:pointer}
+.row:last-child{border-bottom:none}
+.row:active{background:#f0f0ea}
+.medal{width:52px;height:52px;border-radius:50%;flex-shrink:0;object-fit:cover;background:var(--medal-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600}
+.row-main{flex:1;min-width:0}
+.row-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.mini-chip{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;border:1px solid;margin-top:4px}
+.row-side{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.row-rating{font-size:12px;font-weight:600;color:var(--star)}
+.row-fav{width:14px;height:14px;color:var(--red)}
+
+/* Fiche détail */
+.detail-head{background:var(--green);padding:14px 16px 20px;position:relative;text-align:center}
+.head-btn{position:absolute;top:12px;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#e8f5e4;font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.head-btn.left{left:12px}
+.head-btn.right{right:12px}
+.head-btn .heart{width:20px;height:20px}
+.head-btn.on{color:#ff9a90}
+.medal-wrap{position:relative;width:120px;height:120px;margin:6px auto 12px}
+.medal-lg{width:120px;height:120px;border-radius:50%;object-fit:cover;background:var(--medal-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:600;border:3px solid rgba(255,255,255,.85)}
+.medal-cam{position:absolute;right:0;bottom:2px;width:36px;height:36px;border-radius:50%;border:2px solid var(--green);background:#fff;color:var(--green);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.d-name{font-size:20px;font-weight:600;color:#e8f5e4;margin-bottom:8px;padding:0 40px}
+.detail-type{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;border:1px solid}
+.detail-body{padding:4px 16px 16px}
+.sec{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin:16px 0 8px}
+.stars-lg{display:flex;gap:5px;margin-bottom:4px}
+.star-lg{font-size:28px;cursor:pointer;color:var(--star-off)}
+.star-lg.on{color:var(--star)}
+.info-block{border:.5px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden}
+.info-row{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:.5px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-ico{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.info-val{font-size:13px;color:var(--text)}
+.info-lbl{font-size:11px;color:var(--muted)}
+.info-call{margin-left:auto;color:var(--green);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;padding-left:8px}
+.notes-ta{width:100%;border:.5px solid var(--border);border-radius:10px;padding:10px;font-size:16px;font-family:inherit;background:var(--card);color:var(--text);resize:none;height:90px;outline:none}
+.note-status{font-size:11px;color:var(--muted);margin-top:4px;text-align:right;min-height:14px}
+.btn-main{width:100%;padding:14px;background:var(--green);color:var(--green-light);border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px}
+.btn-sec{width:100%;padding:13px;background:none;color:var(--green);border:1px solid rgba(45,90,39,.3);border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-del{width:100%;padding:12px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;margin-top:12px;font-family:inherit}
+.btn-modifier{width:100%;padding:12px;background:rgba(45,90,39,0.08);color:var(--green);border:1px solid rgba(45,90,39,0.2);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:14px}
+
+/* Formulaires */
+.form-wrap{padding:16px}
+.form-title{font-size:18px;font-weight:600;margin-bottom:2px}
+.form-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:.5px solid var(--border);border-radius:10px;font-size:16px;background:var(--card);color:var(--text);font-family:inherit;outline:none;-webkit-appearance:none}
+.field textarea{height:80px;resize:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photo-pick{width:96px;height:96px;border-radius:50%;border:1.5px dashed #c8c8be;background:var(--card);margin:0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;overflow:hidden;color:var(--muted);font-size:11px;text-align:center}
+.photo-pick img{width:100%;height:100%;object-fit:cover}
+.photo-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+.stars-form{display:flex;gap:6px;margin-top:4px}
+.star-f{font-size:30px;cursor:pointer;color:var(--star-off)}
+.star-f.on{color:var(--star)}
+
+/* Destinations */
+.list-block{margin:0 14px;background:var(--card);border-radius:14px;border:.5px solid var(--border);overflow:hidden}
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:.5px solid var(--border);cursor:pointer}
+.list-row:last-child{border-bottom:none}
+.list-row:active{background:#f0f0ea}
+.list-name{font-size:14px}
+.badge{background:#eaf3de;border-radius:10px;padding:2px 10px}
+.badge span{font-size:12px;color:#3b6d11;font-weight:500}
+.dest-back{background:none;border:none;color:var(--green-light);font-size:20px;cursor:pointer;padding:0;margin-right:10px}
+
+.empty{text-align:center;color:var(--muted);padding:30px;font-size:14px;line-height:22px}
+.toast{position:fixed;bottom:calc(var(--safe-bot) + 76px);left:50%;transform:translateX(-50%);background:var(--green);color:var(--green-light);padding:9px 18px;border-radius:20px;font-size:13px;display:none;z-index:999;max-width:88%;text-align:center;pointer-events:none}
+.storage-warn{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 12px;margin:10px 14px;font-size:12px;color:#856404;display:none}
+.optim{margin:10px 14px 0;background:rgba(232,160,32,.12);border:1px solid rgba(232,160,32,.3);border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.45;display:none}
+.optim strong{display:block;margin-bottom:2px}
+.optim-btns{display:flex;gap:8px;margin-top:10px}
+.optim-btns button{flex:1;padding:9px;border-radius:10px;border:none;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;background:#e8a020;color:#fff}
+.optim-btns button:disabled{opacity:.4;cursor:default}
+
+/* Modale */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:430px;margin:0 auto;max-height:92dvh;overflow-y:auto;padding-bottom:calc(var(--safe-bot) + 12px)}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 14px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:0 16px 12px;border-bottom:.5px solid var(--border)}
+.modal-title{font-size:17px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1}
+.modal-save{background:var(--green);color:var(--green-light);border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.modal-body{padding:14px 16px}
+
+.t-veg{background:#eaf3de;color:#3b6d11;border-color:#c0dd97}
+.t-vegan{background:#e1f5ee;color:#0f6e56;border-color:#9fe1cb}
+.t-bio{background:#e6f1fb;color:#185fa5;border-color:#b5d4f4}
+.t-raw{background:#faeeda;color:#854f0b;border-color:#fac775}
+
+/* Données */
+.exp-section{margin:14px;background:var(--card);border-radius:14px;border:.5px solid var(--border);overflow:hidden}
+.exp-section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:12px 14px 8px;border-bottom:.5px solid var(--border)}
+.exp-btn-wrap{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.exp-btn-wrap .btn-main{margin-top:0}
+.exp-note{font-size:12px;color:var(--muted);padding:0 14px 12px;line-height:1.5}
+.exp-summary{font-size:12px;color:var(--green);padding:0 14px 12px;font-weight:500;display:none}
+.backup-banner{margin:14px;background:rgba(232,160,32,0.12);border:1px solid rgba(232,160,32,0.3);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px}
+.backup-banner-text{flex:1;font-size:13px;color:var(--text);line-height:1.4}
+.backup-banner-text strong{display:block;margin-bottom:2px}
+.backup-banner-btn{background:#e8a020;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar"></div>
+  <div class="screen">
+
+    <!-- ACCUEIL -->
+    <div class="view active" id="v-home">
+      <div class="hero">
+        <div class="hero-title">GreenTable</div>
+        <div class="hero-sub">Restos bio & végé du monde entier</div>
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+          <input id="search-q" placeholder="Ville, pays, nom..." oninput="renderHome()">
+        </div>
+      </div>
+      <div class="optim" id="optim-banner">
+        <strong>Optimiser vos photos</strong>
+        Les photos passent au format médaillon : environ 5 fois moins de place. C'est définitif, alors sauvegardez d'abord.
+        <div class="optim-btns">
+          <button onclick="optimStep1()">1. Sauvegarder</button>
+          <button id="optim-step2" onclick="optimStep2()" disabled>2. Optimiser</button>
+        </div>
+      </div>
+      <div class="filter-row" id="filter-row"></div>
+      <div class="storage-warn" id="storage-warn">⚠️ Espace de stockage plein — certaines photos n'ont pas pu être enregistrées sur cet appareil. Elles restent dans vos sauvegardes JSON.</div>
+      <div class="slabel" id="home-count"></div>
+      <div id="home-list"></div>
+    </div>
+
+    <!-- FICHE -->
+    <div class="view" id="v-detail">
+      <div class="detail-head" id="d-head"></div>
+      <div class="detail-body">
+        <div class="sec">Votre note</div>
+        <div class="stars-lg" id="d-stars"></div>
+        <div class="sec">Informations</div>
+        <div class="info-block" id="d-info"></div>
+        <div class="sec">Notes personnelles</div>
+        <textarea class="notes-ta" id="d-notes" placeholder="Vos impressions, plats préférés..." oninput="noteChanged()" onblur="flushNote()"></textarea>
+        <div class="note-status" id="note-status"></div>
+        <button class="btn-modifier" onclick="openEditModal()">✏️ Modifier les informations</button>
+        <button class="btn-del" onclick="deleteResto()">Supprimer ce restaurant</button>
+      </div>
+    </div>
+
+    <!-- AJOUTER -->
+    <div class="view" id="v-add">
+      <div class="form-wrap">
+        <div class="form-title">Ajouter un restaurant</div>
+        <div class="form-sub">Partagez une adresse bio ou végé</div>
+        <div class="field">
+          <div class="photo-pick" id="add-photo-box" onclick="document.getElementById('add-photo-input').click()"></div>
+          <div class="photo-hint">Photo (facultatif) — recadrée en rond</div>
+          <input type="file" id="add-photo-input" accept="image/*" style="display:none" onchange="addPhotoChange(this)">
+        </div>
+        <div class="field"><label>Nom du restaurant *</label><input type="text" id="a-name" placeholder="Ex: Le Jardin Vert"></div>
+        <div class="row2">
+          <div class="field"><label>Pays *</label><input type="text" id="a-country" list="dl-countries" placeholder="Ex: Belgique" autocomplete="off"></div>
+          <div class="field"><label>Ville *</label><input type="text" id="a-city" list="dl-cities" placeholder="Ex: Bruxelles" autocomplete="off"></div>
+        </div>
+        <div class="field"><label>Adresse complète</label><input type="text" id="a-address" placeholder="Rue, numéro, code postal"></div>
+        <div class="field"><label>Téléphone</label><input type="tel" id="a-phone" placeholder="+32 2 123 45 67"></div>
+        <div class="field"><label>Type</label>
+          <select id="a-type">
+            <option value="">— Sélectionner</option>
+            <option>Végétarien</option><option>Vegan</option><option>Bio certifié</option>
+            <option>Végétarien &amp; Bio</option><option>Vegan &amp; Bio</option><option>Cru / Raw</option>
+          </select>
+        </div>
+        <div class="field"><label>Votre note</label><div class="stars-form" id="add-stars"></div></div>
+        <div class="field"><label>Description / commentaire</label><textarea id="a-desc" placeholder="Ambiance, spécialités, bon plan..."></textarea></div>
+        <button class="btn-main" onclick="submitAdd()">Enregistrer le restaurant</button>
+      </div>
+    </div>
+
+    <!-- DESTINATIONS -->
+    <div class="view" id="v-dest">
+      <div class="hero">
+        <div style="display:flex;align-items:center;margin-bottom:4px">
+          <button class="dest-back" id="dest-back-btn" style="display:none" onclick="destBack()">←</button>
+          <div class="hero-title" id="dest-title">Destinations</div>
+        </div>
+        <div class="hero-sub last" id="dest-sub">Parcourir par pays et par ville</div>
+      </div>
+      <div id="dest-content"></div>
+    </div>
+
+    <!-- FAVORIS -->
+    <div class="view" id="v-favs">
+      <div class="hero">
+        <div class="hero-title">Favoris</div>
+        <div class="hero-sub last">Vos restaurants coup de cœur</div>
+      </div>
+      <div class="slabel" id="favs-count"></div>
+      <div id="favs-list"></div>
+    </div>
+
+    <!-- DONNÉES -->
+    <div class="view" id="v-export">
+      <div class="hero">
+        <div class="hero-title">Données</div>
+        <div class="hero-sub last">Sauvegardez et exportez vos restaurants</div>
+      </div>
+      <div class="backup-banner">
+        <span style="font-size:24px">🛡️</span>
+        <div class="backup-banner-text">
+          <strong>Sauvegarde recommandée</strong>
+          Safari peut effacer le stockage local. Téléchargez une copie JSON (photos comprises) pour ne jamais perdre vos données.
+        </div>
+        <button class="backup-banner-btn" onclick="backupJSON()">Sauvegarder</button>
+      </div>
+      <div class="exp-section">
+        <div class="exp-section-title">Restaurer une sauvegarde</div>
+        <div class="exp-btn-wrap">
+          <button class="btn-main" onclick="document.getElementById('json-input').click()">📂 Restaurer depuis JSON</button>
+          <input type="file" id="json-input" accept=".json,application/json" style="display:none" onchange="restoreJSON(this)">
+        </div>
+        <div class="exp-note">Restaure une sauvegarde JSON, photos comprises. Les anciennes sauvegardes restent compatibles. ⚠️ Remplace toutes les données actuelles.</div>
+      </div>
+      <div class="exp-section">
+        <div class="exp-section-title">Exporter en CSV</div>
+        <div class="exp-btn-wrap">
+          <button class="btn-main" onclick="exportCSV()">⬆ Télécharger CSV</button>
+        </div>
+        <div class="exp-note">Pour Excel ou Google Sheets. Colonnes : nom, ville, pays, adresse, téléphone, type, note, favori, commentaire, date. Les photos ne sont pas incluses.</div>
+        <div class="exp-summary" id="csv-summary"></div>
+      </div>
+      <div class="exp-section">
+        <div class="exp-section-title">Importer un CSV</div>
+        <div class="exp-btn-wrap">
+          <button class="btn-main" onclick="startImport('add')">⬇ Ajouter depuis un CSV</button>
+          <button class="btn-sec" onclick="startImport('replace')">Remplacer tout par un CSV</button>
+          <input type="file" id="csv-input" accept=".csv,.txt,text/csv" style="display:none" onchange="importCSV(this)">
+        </div>
+        <div class="exp-note">« Ajouter » garde vos restaurants et ignore les doublons (même nom et même ville). « Remplacer » efface tout le reste. Colonnes attendues : nom, ville, pays, adresse, telephone, type, note_etoiles, favori, commentaire.</div>
+        <div class="exp-summary" id="import-summary"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE MODIFIER -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">Modifier le restaurant</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="modal-save" onclick="saveEditModal()">Enregistrer</button>
+          <button class="modal-close" onclick="closeEditModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <div class="photo-pick" id="edit-photo-box" onclick="document.getElementById('edit-photo-input').click()"></div>
+          <div class="photo-hint">Appuyer pour changer la photo</div>
+          <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="editPhotoChange(this)">
+        </div>
+        <div class="field"><label>Nom du restaurant *</label><input type="text" id="e-name"></div>
+        <div class="row2">
+          <div class="field"><label>Pays *</label><input type="text" id="e-country" list="dl-countries" autocomplete="off"></div>
+          <div class="field"><label>Ville *</label><input type="text" id="e-city" list="dl-cities" autocomplete="off"></div>
+        </div>
+        <div class="field"><label>Adresse</label><input type="text" id="e-address" placeholder="Rue, numéro, code postal"></div>
+        <div class="field"><label>Téléphone</label><input type="tel" id="e-phone" placeholder="+32 2 123 45 67"></div>
+        <div class="field"><label>Type</label>
+          <select id="e-type">
+            <option value="">— Sélectionner</option>
+            <option>Végétarien</option><option>Vegan</option><option>Bio certifié</option>
+            <option>Végétarien &amp; Bio</option><option>Vegan &amp; Bio</option><option>Cru / Raw</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab active" id="tab-home" onclick="goTab('home')"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg>Accueil</button>
+    <button class="tab" id="tab-dest" onclick="goTab('dest')"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-6.1-6.5-11a6.5 6.5 0 0 1 13 0c0 4.9-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Destination</button>
+    <button class="tab" id="tab-add" onclick="goTab('add')"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg>Ajouter</button>
+    <button class="tab" id="tab-favs" onclick="goTab('favs')"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3.5 15 3.5 9.2C3.5 6.6 5.5 4.7 8 4.7c1.6 0 3 .8 4 2.1 1-1.3 2.4-2.1 4-2.1 2.5 0 4.5 1.9 4.5 4.5C20.5 15 12 20.5 12 20.5z"/></svg>Favoris</button>
+    <button class="tab" id="tab-export" onclick="goTab('export')"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M5 7v12h14V7M8 4h8l1 3H7z"/><path d="M10 11h4"/></svg>Données</button>
+  </div>
+</div>
+<datalist id="dl-countries"></datalist>
+<datalist id="dl-cities"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STOCKAGE ──────────────────────────────────────────
+const STORAGE_KEY = 'greentable_v2';
+const PHOTOS_KEY  = 'greentable_photos_v2';
+const SCHEMA_KEY  = 'greentable_schema';
+const OPTIM_KEY   = 'greentable_photos_optimized';
+const PHOTO_SIZE  = 360;   // médaillon : carré de 360 px (net jusqu'à 120 px affichés sur écran Retina)
+
+function saveData(list) {
+  const withoutPhotos = list.map(r => ({...r, photo: r.photo ? '__has_photo__' : null}));
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(withoutPhotos)); }
+  catch(e) { console.warn('Erreur sauvegarde données', e); }
+  const photosMap = {};
+  list.forEach(r => { if (r.photo && r.photo !== '__has_photo__') photosMap[r.id] = r.photo; });
+  try {
+    localStorage.setItem(PHOTOS_KEY, JSON.stringify(photosMap));
+    document.getElementById('storage-warn').style.display = 'none';
+  } catch(e) {
+    // Trop lourd d'un coup : on repart de zéro et on ajoute les photos une par une
+    const kept = {};
+    try { localStorage.removeItem(PHOTOS_KEY); } catch(e0) {}
+    Object.entries(photosMap).forEach(([id, photo]) => {
+      try { kept[id] = photo; localStorage.setItem(PHOTOS_KEY, JSON.stringify(kept)); }
+      catch(e2) { delete kept[id]; document.getElementById('storage-warn').style.display = 'block'; }
+    });
+  }
+}
+
+function loadPhotos() {
+  try { const raw = localStorage.getItem(PHOTOS_KEY); return raw ? JSON.parse(raw) : {}; }
+  catch { return {}; }
+}
+
+function loadData() {
+  let list, stored = false;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const photos = loadPhotos();
+      list = JSON.parse(raw).map(r => ({...r, photo: r.photo === '__has_photo__' ? (photos[r.id] || null) : null}));
+      stored = true;
+    }
+  } catch(e) {}
+  if (!list) list = DEFAULT.map(r => ({...r}));
+  list.forEach(fixLegacy);
+  // Migration unique vers le nouveau format (favoris, correction Graanmarkt)
+  let schema = 0;
+  try { schema = parseInt(localStorage.getItem(SCHEMA_KEY)) || 0; } catch(e) {}
+  if (schema < 3) {
+    if (stored) saveData(list);
+    try { localStorage.setItem(SCHEMA_KEY, '3'); } catch(e) {}
+  }
+  return list;
+}
+
+// Met à niveau un restaurant venant d'une ancienne version ou d'une ancienne sauvegarde
+function fixLegacy(r) {
+  if (r.fav === undefined) r.fav = (r.rating || 0) >= 4;   // les anciens « favoris » = 4★ et plus
+  if (r.name === 'Graanmarkt 13' && r.city === 'Bruxelles') { r.city = 'Anvers'; r.address = 'Graanmarkt 13, 2000 Anvers'; }
+  return r;
+}
+
+// Recadre au centre en carré et réduit à 360 px
+function compressImage(dataUrl, callback) {
+  const img = new Image();
+  img.onload = function() {
+    const s = Math.min(img.width, img.height);
+    const sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = PHOTO_SIZE; canvas.height = PHOTO_SIZE;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, sx, sy, s, s, 0, 0, PHOTO_SIZE, PHOTO_SIZE);
+    callback(canvas.toDataURL('image/jpeg', 0.72));
+  };
+  img.onerror = function() { callback(dataUrl); };
+  img.src = dataUrl;
+}
+function compressAll(list) {
+  return Promise.all(list.filter(r => r.photo).map(r => new Promise(res => compressImage(r.photo, c => { r.photo = c; res(); }))));
+}
+
+// ── OUTILS ────────────────────────────────────────────
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function safePhoto(p){ return (typeof p === 'string' && p.startsWith('data:image/')) ? p : null; }
+function initials(name){
+  const stop = new Set(['le','la','les','de','du','des','the','el','il','lo','der','die','het','chez','au','aux']);
+  const words = String(name || '').replace(/[’']/g, ' ').split(/\s+/).filter(w => /^\p{L}/u.test(w) && w.length > 1 && !stop.has(w.toLowerCase()));
+  const src = words.length ? words : [String(name || '?').trim() || '?'];
+  return src.slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+function heartSVG(filled, cls){
+  return `<svg class="heart ${cls||''}" viewBox="0 0 24 24" fill="${filled?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5S3.5 15 3.5 9.2C3.5 6.6 5.5 4.7 8 4.7c1.6 0 3 .8 4 2.1 1-1.3 2.4-2.1 4-2.1 2.5 0 4.5 1.9 4.5 4.5C20.5 15 12 20.5 12 20.5z"/></svg>`;
+}
+const CAMERA_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+function medalHTML(r, cls){
+  return r.photo ? `<img class="${cls}" src="${r.photo}" alt="">` : `<div class="${cls}">${esc(initials(r.name))}</div>`;
+}
+// Réutilise l'orthographe déjà présente (« belgique » → « Belgique »)
+function canon(value, field){
+  const v = value.trim().replace(/\s+/g, ' ');
+  const hit = restos.find(r => (r[field] || '').toLowerCase() === v.toLowerCase());
+  if (hit) return hit[field];
+  const sug = field === 'country' && COUNTRY_SUGGEST.find(c => c.toLowerCase() === v.toLowerCase());
+  return sug || (v.charAt(0).toLocaleUpperCase('fr') + v.slice(1));
+}
+function mapsURL(r){
+  const q = (r.address ? [r.address, r.city, r.country] : [r.name, r.city, r.country]).filter(Boolean).join(', ');
+  const apple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  return apple ? 'https://maps.apple.com/?daddr=' + encodeURIComponent(q)
+               : 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(q);
+}
+
+// ── DONNÉES PAR DÉFAUT ────────────────────────────────
+const DEFAULT = [
+  {id:'1',name:'Le Potager du Marais',city:'Paris',country:'France',address:'22 rue Rambuteau, 75003 Paris',phone:'+33 1 42 74 24 66',type:'Végétarien',rating:4,notes:'Cuisine créative, superbe brunch du dimanche',photo:null},
+  {id:'2',name:'Graanmarkt 13',city:'Anvers',country:'Belgique',address:'Graanmarkt 13, 2000 Anvers',phone:'+32 3 337 79 91',type:'Bio certifié',rating:5,notes:'',photo:null},
+  {id:'3',name:'La Granja',city:'Barcelone',country:'Espagne',address:'Carrer dels Tallers 9, 08001 Barcelona',phone:'+34 932 01 77 14',type:'Vegan',rating:4,notes:'Salle calme, desserts incroyables',photo:null},
+  {id:'4',name:'Chambre séparée',city:'Gand',country:'Belgique',address:'Gewad 4, 9000 Gent',phone:'+32 9 266 09 97',type:'Bio certifié',rating:5,notes:'',photo:null},
+  {id:'5',name:'Tibits',city:'Zurich',country:'Suisse',address:'Seefeldstrasse 2, 8008 Zürich',phone:'+41 44 260 32 22',type:'Végétarien & Bio',rating:4,notes:'Super buffet à volonté',photo:null},
+];
+const COUNTRY_SUGGEST = ['Allemagne','Australie','Autriche','Belgique','Brésil','Canada','Danemark','Espagne','États-Unis','France','Grèce','Inde','Irlande','Italie','Japon','Luxembourg','Maroc','Mexique','Norvège','Pays-Bas','Pologne','Portugal','République tchèque','Royaume-Uni','Suède','Suisse','Thaïlande'];
+const TYPE_CLS = {'Végétarien':'t-veg','Vegan':'t-vegan','Bio certifié':'t-bio','Végétarien & Bio':'t-bio','Vegan & Bio':'t-vegan','Cru / Raw':'t-raw'};
+// « Bio » attrape aussi « Végétarien & Bio » et « Vegan & Bio »
+const FILTERS = ['Tous','Végétarien','Vegan','Bio','Cru / Raw'];
+
+let restos = loadData();
+let currentId = null;
+let addRating = 3;
+let addPhotoData = null;
+let activeFilter = 'Tous';
+let destLevel = 'countries', destCountry = null, destCity = null, destItems = [];
+let prevTab = 'home';
+let importMode = 'add';
+let noteTimer = null, noteDirty = false;
+
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display = 'none', 2500); }
+function typeClass(t){ return TYPE_CLS[t] || 't-veg'; }
+
+// ── NAVIGATION ────────────────────────────────────────
+function goTab(tab){
+  flushNote();
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('v-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'home') renderHome();
+  if (tab === 'dest') { destLevel = 'countries'; destCountry = null; destCity = null; renderDest(); }
+  if (tab === 'favs') renderFavs();
+  if (tab === 'add') { resetAddForm(); document.getElementById('v-add').scrollTop = 0; }
+  prevTab = tab;
+}
+function backFromDetail(){
+  flushNote();
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('v-' + prevTab).classList.add('active');
+  if (prevTab === 'home') renderHome();
+  if (prevTab === 'dest') renderDest();      // garde le pays / la ville en cours
+  if (prevTab === 'favs') renderFavs();
+}
+
+// ── LISTES ────────────────────────────────────────────
+function rowHTML(r, from){
+  return `<div class="row" onclick="showDetail('${esc(r.id)}','${from}')">
+    ${medalHTML(r, 'medal')}
+    <div class="row-main">
+      <div class="row-name">${esc(r.name)}</div>
+      <div class="row-sub">${esc(r.city)}, ${esc(r.country)}</div>
+      <span class="mini-chip ${typeClass(r.type)}">${esc(r.type)}</span>
+    </div>
+    <div class="row-side">
+      <span class="row-rating">★ ${r.rating || 0}</span>
+      ${r.fav ? heartSVG(true, 'row-fav') : ''}
+    </div>
+  </div>`;
+}
+function listHTML(list, from, emptyMsg){
+  return list.length ? `<div class="rows">${list.map(r => rowHTML(r, from)).join('')}</div>` : `<p class="empty">${emptyMsg}</p>`;
+}
+const plural = (n, w) => `${n} ${w}${n !== 1 ? 's' : ''}`;
+
+// ── ACCUEIL ───────────────────────────────────────────
+function renderFilters(){
+  document.getElementById('filter-row').innerHTML = FILTERS.map((f, i) =>
+    `<div class="chip${f === activeFilter ? ' on' : ''}" onclick="setFilter(FILTERS[${i}])">${esc(f)}</div>`).join('');
+}
+function setFilter(f){ activeFilter = f; renderHome(); }
+function renderHome(){
+  renderFilters();
+  renderOptimBanner();
+  const q = document.getElementById('search-q').value.toLowerCase().trim();
+  const list = restos.filter(r => {
+    const mq = !q || [r.name, r.city, r.country].some(v => (v || '').toLowerCase().includes(q));
+    const mf = activeFilter === 'Tous' || (r.type || '').includes(activeFilter);
+    return mq && mf;
+  });
+  document.getElementById('home-count').textContent = plural(list.length, 'restaurant');
+  document.getElementById('home-list').innerHTML = listHTML(list, 'home', 'Aucun résultat');
+}
+
+// ── FICHE ─────────────────────────────────────────────
+function showDetail(id, from){
+  flushNote();
+  if (from) prevTab = from;
+  currentId = id;
+  const r = restos.find(x => x.id === id); if (!r) return;
+  document.getElementById('d-head').innerHTML = `
+    <button class="head-btn left" onclick="backFromDetail()" aria-label="Retour">←</button>
+    <button class="head-btn right${r.fav ? ' on' : ''}" id="fav-btn" onclick="toggleFav()" aria-label="Favori">${heartSVG(r.fav)}</button>
+    <div class="medal-wrap">${medalHTML(r, 'medal-lg')}<button class="medal-cam" onclick="changePhoto()" aria-label="Changer la photo">${CAMERA_SVG}</button></div>
+    <div class="d-name">${esc(r.name)}</div>
+    <span class="detail-type ${typeClass(r.type)}">${esc(r.type)}</span>`;
+  renderDetailStars(r.rating);
+  document.getElementById('d-info').innerHTML = `
+    <div class="info-row"><span class="info-ico">📍</span><div><div class="info-val">${esc(r.address) || 'Non renseignée'}</div><div class="info-lbl">Adresse</div></div><a class="info-call" href="${esc(mapsURL(r))}" target="_blank" rel="noopener">Itinéraire →</a></div>
+    <div class="info-row"><span class="info-ico">📞</span><div><div class="info-val">${esc(r.phone) || 'Non renseigné'}</div><div class="info-lbl">Téléphone</div></div>${r.phone ? `<a class="info-call" href="tel:${esc(r.phone.replace(/[^\d+]/g, ''))}">Appeler →</a>` : ''}</div>
+    <div class="info-row"><span class="info-ico">🌍</span><div><div class="info-val">${esc(r.city)}, ${esc(r.country)}</div><div class="info-lbl">Localisation</div></div></div>`;
+  document.getElementById('d-notes').value = r.notes || '';
+  document.getElementById('note-status').textContent = 'Enregistrement automatique';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const v = document.getElementById('v-detail'); v.classList.add('active'); v.scrollTop = 0;
+}
+function renderDetailStars(n){
+  const ds = document.getElementById('d-stars'); ds.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const s = document.createElement('span');
+    s.className = 'star-lg' + (i <= n ? ' on' : ''); s.textContent = i <= n ? '★' : '☆';
+    s.onclick = () => setDetailRating(i); ds.appendChild(s);
+  }
+}
+function setDetailRating(v){
+  const r = restos.find(x => x.id === currentId); if (!r) return;
+  r.rating = v; saveData(restos); renderDetailStars(v); toast('Note mise à jour ✓');
+}
+function toggleFav(){
+  const r = restos.find(x => x.id === currentId); if (!r) return;
+  r.fav = !r.fav; saveData(restos);
+  const b = document.getElementById('fav-btn'); b.innerHTML = heartSVG(r.fav); b.classList.toggle('on', r.fav);
+  toast(r.fav ? 'Ajouté aux favoris ♥' : 'Retiré des favoris');
+}
+// Notes : enregistrement automatique
+function noteChanged(){
+  noteDirty = true;
+  document.getElementById('note-status').textContent = '…';
+  clearTimeout(noteTimer); noteTimer = setTimeout(flushNote, 700);
+}
+function flushNote(){
+  clearTimeout(noteTimer);
+  if (!noteDirty || !currentId) return;
+  const r = restos.find(x => x.id === currentId);
+  if (r) { r.notes = document.getElementById('d-notes').value; saveData(restos); }
+  noteDirty = false;
+  document.getElementById('note-status').textContent = 'Enregistré ✓';
+}
+function deleteResto(){
+  if (!confirm('Supprimer ce restaurant ?')) return;
+  noteDirty = false;
+  restos = restos.filter(x => x.id !== currentId);
+  saveData(restos); currentId = null; backFromDetail(); toast('Restaurant supprimé');
+}
+function pickImage(callback){
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = e => readImage(e.target.files[0], callback); inp.click();
+}
+function readImage(file, callback){
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = ev => compressImage(ev.target.result, callback);
+  fr.readAsDataURL(file);
+}
+function changePhoto(){
+  pickImage(compressed => {
+    const r = restos.find(x => x.id === currentId); if (!r) return;
+    r.photo = compressed; saveData(restos); showDetail(currentId); toast('Photo mise à jour ✓');
+  });
+}
+
+// ── MODALE MODIFIER ───────────────────────────────────
+let editPhotoNew = null;
+function setPick(boxId, photo, label){
+  document.getElementById(boxId).innerHTML = photo ? `<img src="${photo}" alt="">` : `${CAMERA_SVG}<span>${label}</span>`;
+}
+function fillDatalists(){
+  const countries = [...new Set([...restos.map(r => r.country).filter(Boolean), ...COUNTRY_SUGGEST])].sort((a, b) => a.localeCompare(b, 'fr'));
+  const cities = [...new Set(restos.map(r => r.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+  document.getElementById('dl-countries').innerHTML = countries.map(c => `<option value="${esc(c)}">`).join('');
+  document.getElementById('dl-cities').innerHTML = cities.map(c => `<option value="${esc(c)}">`).join('');
+}
+function openEditModal(){
+  flushNote();
+  const r = restos.find(x => x.id === currentId); if (!r) return;
+  editPhotoNew = null; fillDatalists();
+  document.getElementById('e-name').value = r.name || '';
+  document.getElementById('e-country').value = r.country || '';
+  document.getElementById('e-city').value = r.city || '';
+  document.getElementById('e-address').value = r.address || '';
+  document.getElementById('e-phone').value = r.phone || '';
+  document.getElementById('e-type').value = r.type || '';
+  setPick('edit-photo-box', r.photo, 'Photo');
+  document.getElementById('edit-photo-input').value = '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEditModal(){ document.getElementById('edit-modal').classList.remove('open'); editPhotoNew = null; }
+function editPhotoChange(inp){
+  readImage(inp.files[0], c => { editPhotoNew = c; setPick('edit-photo-box', c); });
+}
+function saveEditModal(){
+  const r = restos.find(x => x.id === currentId); if (!r) return;
+  const name = document.getElementById('e-name').value.trim();
+  const country = document.getElementById('e-country').value.trim();
+  const city = document.getElementById('e-city').value.trim();
+  if (!name || !country || !city) { toast('Nom, pays et ville sont obligatoires'); return; }
+  r.name = name; r.country = canon(country, 'country'); r.city = canon(city, 'city');
+  r.address = document.getElementById('e-address').value.trim();
+  r.phone = document.getElementById('e-phone').value.trim();
+  r.type = document.getElementById('e-type').value || r.type;
+  if (editPhotoNew !== null) r.photo = editPhotoNew;
+  saveData(restos); closeEditModal(); showDetail(currentId); toast('Restaurant mis à jour ✓');
+}
+
+// ── AJOUTER ───────────────────────────────────────────
+function resetAddForm(){
+  addRating = 3; addPhotoData = null; fillDatalists();
+  ['a-name','a-country','a-city','a-address','a-phone','a-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('a-type').value = '';
+  document.getElementById('add-photo-input').value = '';
+  setPick('add-photo-box', null, 'Photo');
+  buildAddStars();
+}
+function buildAddStars(){
+  const sf = document.getElementById('add-stars'); sf.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const s = document.createElement('span');
+    s.className = 'star-f' + (i <= addRating ? ' on' : ''); s.textContent = i <= addRating ? '★' : '☆';
+    s.onclick = () => { addRating = i; buildAddStars(); }; sf.appendChild(s);
+  }
+}
+function addPhotoChange(inp){ readImage(inp.files[0], c => { addPhotoData = c; setPick('add-photo-box', c); }); }
+function submitAdd(){
+  const name = document.getElementById('a-name').value.trim();
+  const city = document.getElementById('a-city').value.trim();
+  const country = document.getElementById('a-country').value.trim();
+  if (!name || !city || !country) { toast('Remplissez les champs obligatoires (*)'); return; }
+  restos.unshift({
+    id: Date.now().toString(), name, city: canon(city, 'city'), country: canon(country, 'country'),
+    address: document.getElementById('a-address').value.trim(),
+    phone: document.getElementById('a-phone').value.trim(),
+    type: document.getElementById('a-type').value || 'Végétarien',
+    rating: addRating, fav: false,
+    notes: document.getElementById('a-desc').value,
+    photo: addPhotoData
+  });
+  saveData(restos); toast('Restaurant ajouté ✓'); goTab('home');
+}
+
+// ── DESTINATIONS ──────────────────────────────────────
+function renderDest(){
+  document.getElementById('dest-back-btn').style.display = destLevel === 'countries' ? 'none' : 'inline';
+  const content = document.getElementById('dest-content');
+  if (destLevel === 'restos') {
+    const list = restos.filter(r => r.country === destCountry && r.city === destCity);
+    if (!list.length) { destLevel = 'cities'; return renderDest(); }
+    document.getElementById('dest-title').textContent = destCity;
+    document.getElementById('dest-sub').textContent = plural(list.length, 'restaurant');
+    content.innerHTML = '<div style="height:10px"></div>' + listHTML(list, 'dest', '');
+    return;
+  }
+  const source = destLevel === 'countries' ? restos : restos.filter(r => r.country === destCountry);
+  if (destLevel === 'cities' && !source.length) { destLevel = 'countries'; return renderDest(); }
+  const key = destLevel === 'countries' ? 'country' : 'city';
+  const map = {}; source.forEach(r => { map[r[key]] = (map[r[key]] || 0) + 1; });
+  destItems = Object.entries(map).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
+  document.getElementById('dest-title').textContent = destLevel === 'countries' ? 'Destinations' : destCountry;
+  document.getElementById('dest-sub').textContent = destLevel === 'countries' ? 'Parcourir par pays et par ville' : 'Choisir une ville';
+  content.innerHTML = destItems.length
+    ? '<div style="height:10px"></div><div class="list-block">' + destItems.map(([c, n], i) =>
+        `<div class="list-row" onclick="destPick(${i})"><span class="list-name">${esc(c)}</span><div class="badge"><span>${n} resto${n > 1 ? 's' : ''}</span></div></div>`).join('') + '</div>'
+    : '<p class="empty">Aucun restaurant pour l\'instant.</p>';
+}
+function destPick(i){
+  const item = destItems[i]; if (!item) return;
+  if (destLevel === 'countries') { destCountry = item[0]; destLevel = 'cities'; }
+  else if (destLevel === 'cities') { destCity = item[0]; destLevel = 'restos'; }
+  renderDest();
+}
+function destBack(){
+  if (destLevel === 'restos') destLevel = 'cities';
+  else if (destLevel === 'cities') { destLevel = 'countries'; destCountry = null; }
+  renderDest();
+}
+
+// ── FAVORIS ───────────────────────────────────────────
+function renderFavs(){
+  const favs = restos.filter(r => r.fav);
+  document.getElementById('favs-count').textContent = plural(favs.length, 'restaurant');
+  document.getElementById('favs-list').innerHTML = listHTML(favs, 'favs', 'Aucun favori pour l\'instant.<br>Touchez le cœur sur la fiche d\'un restaurant.');
+}
+
+// ── OPTIMISATION DES PHOTOS EXISTANTES ────────────────
+function renderOptimBanner(){
+  let done = false; try { done = !!localStorage.getItem(OPTIM_KEY); } catch(e) {}
+  const hasPhotos = restos.some(r => r.photo);
+  if (!done && !hasPhotos) { try { localStorage.setItem(OPTIM_KEY, '1'); } catch(e) {} done = true; }
+  document.getElementById('optim-banner').style.display = done ? 'none' : 'block';
+}
+function optimStep1(){ backupJSON(); document.getElementById('optim-step2').disabled = false; }
+function optimStep2(){
+  if (!confirm('Recadrer et réduire toutes les photos en médaillon ? C\'est définitif sur cet appareil (votre sauvegarde garde les originaux).')) return;
+  const n = restos.filter(r => r.photo).length;
+  toast('Optimisation en cours…');
+  compressAll(restos).then(() => {
+    saveData(restos);
+    try { localStorage.setItem(OPTIM_KEY, '1'); } catch(e) {}
+    renderHome(); toast(`✓ ${plural(n, 'photo')} optimisée${n > 1 ? 's' : ''}`);
+  });
+}
+
+// ── SAUVEGARDE / EXPORT ───────────────────────────────
+function download(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const today = () => new Date().toISOString().split('T')[0];
+
+function backupJSON(){
+  flushNote();
+  const nbPhotos = restos.filter(r => r.photo).length;
+  const blob = new Blob([JSON.stringify({version: 3, date: today(), restos})], {type: 'application/json'});
+  download(blob, `greentable-backup-${today()}.json`);
+  toast(`✓ Sauvegarde — ${plural(nbPhotos, 'photo')}, ${(blob.size / 1048576).toFixed(1)} Mo`);
+}
+
+function restoreJSON(inp){
+  const file = inp.files[0]; inp.value = ''; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let restored;
+    try {
+      const data = JSON.parse(e.target.result);
+      restored = data.restos || data;
+      if (!Array.isArray(restored)) throw new Error('Format invalide');
+    } catch(err) { toast('⚠️ Fichier JSON invalide ou corrompu'); return; }
+    if (!confirm(`Restaurer ${restored.length} restaurants ? Toutes les données actuelles seront remplacées.`)) return;
+    const photosMap = {}; restos.forEach(r => { if (r.photo) photosMap[r.id] = r.photo; });
+    const list = restored.filter(r => r && r.name).map(r => fixLegacy({
+      ...r, id: String(r.id || Date.now() + Math.random()),
+      photo: r.photo === '[photo]' ? (photosMap[r.id] || null) : safePhoto(r.photo)
+    }));
+    // Les photos des sauvegardes peuvent être en grand format : on les passe en médaillon
+    compressAll(list).then(() => {
+      restos = list; saveData(restos);
+      try { localStorage.setItem(OPTIM_KEY, '1'); } catch(e) {}
+      renderHome();
+      toast(`✓ ${plural(restos.length, 'restaurant')}, ${plural(restos.filter(r => r.photo).length, 'photo')}`);
+    });
+  };
+  reader.readAsText(file);
+}
+
+function csvEsc(v){
+  const s = String(v);
+  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function exportCSV(){
+  flushNote();
+  if (!restos.length) { toast('Aucun restaurant à exporter'); return; }
+  const headers = ['nom','ville','pays','adresse','telephone','type','note_etoiles','favori','commentaire','date_ajout'];
+  const rows = restos.map(r => {
+    const t = parseInt(r.id);
+    return [r.name||'', r.city||'', r.country||'', r.address||'', r.phone||'', r.type||'', r.rating||0,
+            r.fav ? 'oui' : 'non', (r.notes||'').replace(/\r?\n/g, ' '),
+            t > 1e12 ? new Date(t).toISOString().split('T')[0] : ''].map(csvEsc).join(',');
+  });
+  download(new Blob(['\uFEFF' + [headers.join(','), ...rows].join('\n')], {type: 'text/csv;charset=utf-8;'}), `greentable-restos-${today()}.csv`);
+  const s = document.getElementById('csv-summary'); s.textContent = `✓ ${plural(restos.length, 'restaurant')} exporté${restos.length > 1 ? 's' : ''}`; s.style.display = 'block';
+}
+
+function startImport(mode){ importMode = mode; document.getElementById('csv-input').click(); }
+function importCSV(inp){
+  const file = inp.files[0]; inp.value = ''; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { toast('⚠️ Fichier CSV vide ou invalide'); return; }
+    const delim = lines[0].includes(';') ? ';' : ',';
+    const header = parseCSVRow(lines[0], delim).map(h => h.trim().toLowerCase());
+    const get = (cols, k) => { const i = header.indexOf(k); return i >= 0 ? (cols[i] || '').trim() : ''; };
+    const base = Date.now();
+    const imported = lines.slice(1).map((line, n) => {
+      const cols = parseCSVRow(line, delim);
+      const name = get(cols, 'nom'), city = get(cols, 'ville');
+      if (!name || !city) return null;
+      const rating = Math.min(5, Math.max(1, parseInt(get(cols, 'note_etoiles')) || 3));
+      const favCol = get(cols, 'favori');
+      return {
+        id: String(base + n), name, city, country: get(cols, 'pays') || 'Autre',
+        address: get(cols, 'adresse'), phone: get(cols, 'telephone'),
+        type: get(cols, 'type') || 'Végétarien', rating,
+        fav: favCol ? /^(oui|yes|1|true|x)$/i.test(favCol) : false,
+        notes: get(cols, 'commentaire'), photo: null
+      };
+    }).filter(Boolean);
+    if (!imported.length) { toast('⚠️ Aucun restaurant valide dans le CSV'); return; }
+    const sumEl = document.getElementById('import-summary');
+    if (importMode === 'replace') {
+      if (!confirm(`Remplacer TOUS vos restaurants par les ${imported.length} du fichier ? Photos et notes actuelles seront perdues.`)) return;
+      restos = imported;
+      sumEl.textContent = `✓ ${plural(imported.length, 'restaurant')} importé${imported.length > 1 ? 's' : ''} (remplacement)`;
+    } else {
+      const key = r => (r.name + '|' + r.city).toLowerCase().trim();
+      const seen = new Set(restos.map(key));
+      const fresh = imported.filter(r => { const k = key(r); if (seen.has(k)) return false; seen.add(k); return true; });
+      const dup = imported.length - fresh.length;
+      if (!fresh.length) { toast(`Rien à ajouter : ${plural(dup, 'doublon')}`); return; }
+      if (!confirm(`Ajouter ${plural(fresh.length, 'restaurant')} ?${dup ? ` (${plural(dup, 'doublon')} ignoré${dup > 1 ? 's' : ''})` : ''}`)) return;
+      fresh.forEach(r => { r.country = canon(r.country, 'country'); r.city = canon(r.city, 'city'); });
+      restos = [...fresh, ...restos];
+      sumEl.textContent = `✓ ${plural(fresh.length, 'restaurant')} ajouté${fresh.length > 1 ? 's' : ''}${dup ? `, ${plural(dup, 'doublon')} ignoré${dup > 1 ? 's' : ''}` : ''}`;
+    }
+    saveData(restos); renderHome();
+    sumEl.style.display = 'block'; toast(sumEl.textContent);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+function parseCSVRow(line, delim){
+  const values = []; let val = '', quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (quoted && line[i + 1] === '"') { val += '"'; i++; } else quoted = !quoted; }
+    else if (c === delim && !quoted) { values.push(val); val = ''; }
+    else val += c;
+  }
+  values.push(val); return values;
+}
+
+// ── DÉMARRAGE ─────────────────────────────────────────
+window.addEventListener('pagehide', flushNote);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNote(); });
+buildAddStars();
+renderHome();
+</script>
+</body>
+</html>
